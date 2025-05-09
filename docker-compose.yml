@@ -22,13 +22,14 @@ services:
   kestra:
     image: kestra/kestra:latest
     pull_policy: always
+    # Note that this setup with a root user is intended for development purpose.
+    # Our base image runs without root, but the Docker Compose implementation needs root to access the Docker socket
     user: "root"
     command: server standalone
     volumes:
+      - kestra-data:/app/storage
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/kestra-wd:/tmp/kestra-wd
-      - ./:/app/  # 👈 Correct volume mount
-      - kestra-data:/app/storage
     environment:
       KESTRA_CONFIGURATION: |
         datasources:
@@ -41,7 +42,7 @@ services:
           server:
             basicAuth:
               enabled: false
-              username: "admin@localhost.dev"
+              username: "admin@localhost.dev" # it must be a valid email address
               password: kestra
           repository:
             type: postgres
