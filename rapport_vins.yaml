@@ -8,18 +8,19 @@ tasks:
     namespaceFiles:
       enabled: true
     commands:
-      - pip install pandas  # Ensure pandas is available
-      - python /app/project/traitement_vins.py
+      - pip install pandas openpyxl scipy kestra # Ensure pandas is available
+      - python traitement_vins.py
     beforeCommands:
-      - pip install pandas  # Install dependencies if needed
+      - pip install pandas openpyxl # Install dependencies if needed
+    outputFiles:
+      - "output/*.csv"
+      - "output/*.xlsx"
     taskRunner:
       type: io.kestra.plugin.core.runner.Process
-
-  - id: log
-    type: io.kestra.plugin.core.log.Log
-    message: "Business day - continuing the flow..."
 
 triggers:
   - id: planification_mensuelle
     type: io.kestra.plugin.core.trigger.Schedule
-    cron: "0 9 15 * *"  # Trigger on the 15th of every month at 9 AM
+    timezone: Europe/Paris
+    cron: "0 9 15 * *"  # Trigger on the 15th of every month at 9 AM 
+    recoverMissedSchedules: LAST
