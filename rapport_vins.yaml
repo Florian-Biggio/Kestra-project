@@ -1,0 +1,25 @@
+id: rapport-vins
+namespace: traitement.vins
+
+tasks:
+  - id: lancer-script-python
+    type: io.kestra.plugin.scripts.python.Commands
+    warningOnStdErr: false
+    namespaceFiles:
+      enabled: true
+    commands:
+      - pip install pandas  # Ensure pandas is available
+      - python /app/project/traitement_vins.py
+    beforeCommands:
+      - pip install pandas  # Install dependencies if needed
+    taskRunner:
+      type: io.kestra.plugin.core.runner.Process
+
+  - id: log
+    type: io.kestra.plugin.core.log.Log
+    message: "Business day - continuing the flow..."
+
+triggers:
+  - id: planification_mensuelle
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 9 15 * *"  # Trigger on the 15th of every month at 9 AM
