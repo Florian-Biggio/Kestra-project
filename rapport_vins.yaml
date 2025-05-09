@@ -1,22 +1,30 @@
 id: rapport-vins
 namespace: traitement.vins
 
+inputs:
+  - id: github_url
+    type: STRING
+    defaults: https://github.com/Florian-Biggio/Kestra-project/
+
 tasks:
-  - id: lancer-script-python
-    type: io.kestra.plugin.scripts.python.Commands
-    warningOnStdErr: false
-    namespaceFiles:
-      enabled: true
-    commands:
-      - pip install pandas openpyxl scipy kestra # Ensure pandas is available
-      - python traitement_vins.py
-    beforeCommands:
-      - pip install pandas openpyxl # Install dependencies if needed
-    outputFiles:
-      - "output/*.csv"
-      - "output/*.xlsx"
-    taskRunner:
-      type: io.kestra.plugin.core.runner.Process
+  - id: wdir
+    type: io.kestra.plugin.core.flow.WorkingDirectory
+    tasks:
+      - id: clone
+        type: io.kestra.plugin.git.Clone
+        url: "{{ inputs.github_url }}"
+
+      - id: lancer-script-python
+        type: io.kestra.plugin.scripts.python.Commands
+        commands:
+          - python traitement_vins.py
+        beforeCommands:
+          - pip install pandas openpyxl scipy kestra # Install dependencies if needed
+        outputFiles:
+          - "output/*.csv"
+          - "output/*.xlsx"
+        taskRunner:
+          type: io.kestra.plugin.core.runner.Process
 
 triggers:
   - id: planification_mensuelle
