@@ -14,15 +14,28 @@ tasks:
         type: io.kestra.plugin.git.Clone
         url: "{{ inputs.github_url }}"
 
+      - id: analyse_deduplication
+        type: io.kestra.plugin.jdbc.duckdb.Query
+        inputFiles:
+          erp.xlsx: "{{ workingDir }}/data/Fichier_erp.xlsx"
+          web.xlsx: "{{ workingDir }}/data/Fichier_web.xlsx"
+          liaison.xlsx: "{{ workingDir }}/data/fichier_liaison.xlsx"
+        sql: "{{ workingDir }}/sql/deduplication_merge.sql"
+        outputFiles:
+          - "{{ workingDir }}/output/final_merge.csv"
+        fetchType: STORE
+
       - id: lancer-script-python
         type: io.kestra.plugin.scripts.python.Commands
         commands:
-          - python traitement_vins.py
+          - python scripts/traitement_vins.py
         beforeCommands:
           - pip install pandas openpyxl scipy kestra # Install dependencies if needed
         outputFiles:
           - "output/*.csv"
           - "output/*.xlsx"
+        warningOnStdErr:
+          False
         taskRunner:
           type: io.kestra.plugin.core.runner.Process
 
