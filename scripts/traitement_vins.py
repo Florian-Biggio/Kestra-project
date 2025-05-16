@@ -16,6 +16,8 @@ logging = Kestra.logger()
 
 logging.info("Starting the script.")
 
+output_dir = "output"
+os.makedirs(output_dir, exist_ok=True)
 
 try:
     logging.info(f"Loading data from {input_file}")
@@ -64,6 +66,20 @@ except Exception as e:
     logging.info(f"the length of web after deduplication is {len(web)}")
 
     logging.info("")
+    logging.info("EXPORTING FILES FOR TESTING")
+    logging.info("----------------------------")
+
+    erp.to_csv(f"{output_dir}/erp.csv", index=False)
+    logging.info("rapport_chiffres_affaires.xlsx exported successfully")
+
+    liaison.to_csv(f"{output_dir}/liaison.csv", index=False)
+    logging.info("vins_millesimes.csv exported successfully")
+
+    web.to_csv(f"{output_dir}/web.csv", index=False)
+    logging.info("web.csv exported successfully")
+
+
+    logging.info("")
     logging.info("MERGING DATAFRAMES")
     # Merge web and liaison using the 'sku' and 'id_web' columns
     merged_df = pd.merge(web, liaison, left_on='sku', right_on='id_web', how='left')
@@ -86,6 +102,11 @@ except Exception as e:
     final_df["CA"].sum()
     logging.info(f"the total sales is {final_df['CA'].sum()}")
 
+    logging.info("EXPORTING MERGED FILE FOR TESTING")
+    logging.info("----------------------------")
+    final_df.to_csv(f"{output_dir}/final_merge.csv", index=False)
+    logging.info("web.csv exported successfully")
+
 logging.info("")
 logging.info("FINDING OUT WHICH WINES ARE MILLÉSIME")
 logging.info("----------------------------")
@@ -105,10 +126,6 @@ logging.info(f"{millésime_count} wines are millésime")
 logging.info("")
 logging.info("EXPORTING FILES")
 logging.info("----------------------------")
-
-
-output_dir = "output"
-os.makedirs(output_dir, exist_ok=True)
 
 # Select only the relevant columns for the first sheet
 wine_details = final_df[[

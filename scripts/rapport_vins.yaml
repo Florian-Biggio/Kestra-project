@@ -14,60 +14,51 @@ tasks:
         type: io.kestra.plugin.git.Clone
         url: "{{ inputs.github_url }}"
 
-      - id: make output dir
-        type: io.kestra.core.tasks.scripts.Bash
+      - id: make_output_dir
+        type: io.kestra.plugin.scripts.shell.Commands
         commands:
           - mkdir -p output
 
       - id: analyse_deduplication
         type: io.kestra.plugin.jdbc.duckdb.Query
+        disabled: true # why try to make duckDB work when no duckDB works ?
         inputFiles:
           erp.xlsx: "data/Fichier_erp.xlsx"
           web.xlsx: "data/Fichier_web.xlsx"
           liaison.xlsx: "data/fichier_liaison.xlsx"
         sql: |
           -- Deduplication for ERP and Liaison files
+
           CREATE TABLE erp_clean AS
-          SELECT DISTINCT * FROM read_xlsx(
-            '{{workingDir}}/data/Fichier_erp.xlsx',
-            all_varchar = true)
+          SELECT DISTINCT ON (product_id) * 
+          FROM read_xlsx('{{workingDir}}/data/Fichier_erp.xlsx', all_varchar = true)
           WHERE product_id IS NOT NULL;
 
           CREATE TABLE liaison_clean AS
-          SELECT DISTINCT * FROM read_xlsx(
-            '{{workingDir}}/data/fichier_liaison.xlsx',
-            all_varchar = true);
+          SELECT DISTINCT ON (product_id, id_web) * 
+          FROM read_xlsx('{{workingDir}}/data/fichier_liaison.xlsx', all_varchar = true);
 
-          -- Cleaning and deduplicating the Web file
           CREATE TABLE web_clean AS
-          SELECT DISTINCT * FROM read_xlsx(
-            '{{workingDir}}/data/Fichier_web.xlsx',
-            all_varchar = true)
+          SELECT DISTINCT ON (sku) * 
+          FROM read_xlsx('{{workingDir}}/data/Fichier_web.xlsx', all_varchar = true)
           WHERE sku IS NOT NULL AND post_title IS NOT NULL;
 
-          -- Merging the data
           CREATE TABLE final_merge AS
           SELECT 
-            w.sku,
-            w.post_title,
-            l.product_id,
-            CAST(e.price AS DOUBLE) AS erp_price,
-            CAST(w.total_sales AS INTEGER) AS web_sales
+          w.sku,
+          w.post_title AS product_name,
+          l.product_id,
+          CAST(e.price AS DOUBLE) AS price,
+          CAST(w.total_sales AS INTEGER) AS sales,
+          CAST(e.price AS DOUBLE) * CAST(sales AS INTEGER) AS CA
           FROM web_clean w
           LEFT JOIN liaison_clean l ON w.sku = l.id_web
           LEFT JOIN erp_clean e ON l.product_id = e.product_id;
 
-          -- Calculating total revenue (CA) per product
-          SELECT 
-            post_title AS product_name, 
-            SUM(CAST(erp_price AS DOUBLE) * CAST(web_sales AS INTEGER)) AS CA
-          FROM final_merge
-          GROUP BY post_title
-          ORDER BY CA DESC;
-
           COPY final_merge TO '{{workingDir}}/output/final_merge.csv' (HEADER, DELIMITER ',');
+
         outputFiles:
-          - "output/final_merge.csv"
+          - "**/*.csv"
         fetchType: STORE
 
       - id: lancer-script-python
@@ -83,6 +74,17 @@ tasks:
           False
         taskRunner:
           type: io.kestra.plugin.core.runner.Process
+
+      - id: run-pytest
+        type: io.kestra.plugin.scripts.python.Commands
+        description: Run Pytest for data validation
+        commands:
+          - pip install pytest
+          - pytest tests/ --disable-warnings
+        warningOnStdErr: false
+        taskRunner:
+          type: io.kestra.plugin.core.runner.Process
+
 
 triggers:
   - id: planification_mensuelle
