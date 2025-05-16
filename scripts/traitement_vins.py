@@ -24,7 +24,7 @@ try:
     logging.info(f"Columns: {final_df.columns.tolist()}")
     
     # Example processing (replace with actual logic as needed)
-    total_revenue = final_df['total_revenue'].sum()
+    total_revenue = final_df['CA'].sum()
     logging.info(f"Total global revenue: {total_revenue}")
     
 except Exception as e:
