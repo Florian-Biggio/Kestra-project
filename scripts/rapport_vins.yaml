@@ -21,7 +21,7 @@ tasks:
 
       - id: analyse_deduplication
         type: io.kestra.plugin.jdbc.duckdb.Query
-        disabled: true # why try to make duckDB work when no duckDB works ?
+        disabled: false # why try to make duckDB work when no duckDB works ?
         inputFiles:
           erp.xlsx: "data/Fichier_erp.xlsx"
           web.xlsx: "data/Fichier_web.xlsx"
@@ -61,12 +61,13 @@ tasks:
           - "**/*.csv"
         fetchType: STORE
 
-      - id: lancer-script-python
+      - id: lancer_script_python
         type: io.kestra.plugin.scripts.python.Commands
         commands:
           - python scripts/traitement_vins.py --input_file output/final_merge.csv
+           - pytest tests/ --disable-warnings
         beforeCommands:
-          - pip install pandas openpyxl scipy kestra # Install dependencies if needed
+          - pip install pandas openpyxl scipy kestra pytest
         outputFiles:
           - "output/*.csv"
           - "output/*.xlsx"
@@ -74,17 +75,6 @@ tasks:
           False
         taskRunner:
           type: io.kestra.plugin.core.runner.Process
-
-      - id: run-pytest
-        type: io.kestra.plugin.scripts.python.Commands
-        description: Run Pytest for data validation
-        commands:
-          - pip install pytest
-          - pytest tests/ --disable-warnings
-        warningOnStdErr: false
-        taskRunner:
-          type: io.kestra.plugin.core.runner.Process
-
 
 triggers:
   - id: planification_mensuelle
